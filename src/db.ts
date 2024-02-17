@@ -15,13 +15,12 @@ interface Person {
   skills: Skill[];
 }
 
-const getDB = (): Database => {
+export const getDB = (): Database => {
   if (!fs.existsSync("main.db")) {
     createAndInsertDB();
   }
   return new Database("main.db");
 };
-
 
 // TODO: add some sort of error handling?
 const createAndInsertDB = () => {
@@ -29,61 +28,73 @@ const createAndInsertDB = () => {
 
   db.serialize(() => {
     db.run(`
-          CREATE TABLE IF NOT EXISTS users (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              name TEXT,
-              company TEXT,
-              email TEXT,
-              phone TEXT,
-              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          )
+        CREATE TABLE IF NOT EXISTS users (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT,
+          company TEXT,
+          email TEXT,
+          phone TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
       `);
 
     db.run(`
-          CREATE TABLE IF NOT EXISTS skills (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              user_id INTEGER,
-              skill TEXT,
-              rating INTEGER,
-              FOREIGN KEY (user_id) REFERENCES users(id)
-          )
+        CREATE TABLE IF NOT EXISTS skills (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER,
+          skill TEXT,
+          rating INTEGER,
+          FOREIGN KEY (user_id) REFERENCES users(id)
+        )
       `);
-  });
 
-  const people = data as Person[];
+    const people = data as Person[];
 
-  db.serialize(() => {
     db.run("BEGIN TRANSACTION");
 
-    for (const person of people) {
-      db.run(
-        `
+    const insertions = people.map(
+      (person) =>
+        new Promise<void>((resolve, reject) => {
+          db.run(
+            `
             INSERT INTO users (name, company, email, phone)
             VALUES (?, ?, ?, ?)
-        `,
-        [person.name, person.company, person.email, person.phone],
-        function (err) {
-          if (err) {
-            console.error("Error inserting user:", err);
-            return;
-          }
+          `,
+            [person.name, person.company, person.email, person.phone],
+            function (err) {
+              if (err) {
+                reject(err);
+              } else {
+                const userId = this.lastID;
 
-          const userId = this.lastID;
-
-          const insertSkillsStmt = db.prepare(`
+                const insertSkillsStmt = db.prepare(`
                 INSERT INTO skills (user_id, skill, rating)
                 VALUES (?, ?, ?)
-            `);
-          for (const skill of person.skills) {
-            insertSkillsStmt.run(userId, skill.skill, skill.rating);
-          }
-          insertSkillsStmt.finalize();
-        }
-      );
-    }
+              `);
+                for (const skill of person.skills) {
+                  insertSkillsStmt.run(userId, skill.skill, skill.rating);
+                }
+                insertSkillsStmt.finalize();
 
-    db.run("COMMIT");
+                resolve();
+              }
+            }
+          );
+        })
+    );
+
+    Promise.all(insertions)
+      .then(() => {
+        db.run("COMMIT", () => {
+          db.close();
+        });
+      })
+      .catch((err) => {
+        console.error("Error inserting users:", err);
+        db.run("ROLLBACK", () => {
+          db.close();
+        });
+      });
   });
-  db.close();
 };

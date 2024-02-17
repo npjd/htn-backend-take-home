@@ -1,17 +1,21 @@
-import express from "express";
-import { createHandler } from 'graphql-http/lib/use/express';
-import { getDB } from "./db";
-import schema from "./schema";
+import { ApolloServer } from "@apollo/server";
+import { startStandaloneServer } from "@apollo/server/standalone";
+import { typeDefs } from "./typeDefs";
+import { resolvers } from "./resolver";
 
-const app = express();
-const db = getDB();
+async function startServer() {
+  const server = new ApolloServer({
+    typeDefs,
+    resolvers,
+  });
 
-app.use(
-  "/graphql",
-  createHandler({ schema })
-);
+  const { url } = await startStandaloneServer(server, {
+    listen: { port: 4000 },
+  });
 
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`🚀  Server ready at: ${url}`);
+}
+
+startServer().catch((error) => {
+  console.error("Error starting the server:", error);
 });

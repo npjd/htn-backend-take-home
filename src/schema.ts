@@ -10,6 +10,16 @@ import { getDB } from "./db";
 
 const db = getDB();
 
+const SkillType = new GraphQLObjectType({
+  name: "Skill",
+  fields: {
+    id: { type: GraphQLInt },
+    user_id: { type: GraphQLInt },
+    skill: { type: GraphQLString },
+    rating: { type: GraphQLInt },
+  },
+});
+
 const UserType = new GraphQLObjectType({
   name: "User",
   fields: {
@@ -20,16 +30,9 @@ const UserType = new GraphQLObjectType({
     phone: { type: GraphQLString },
     created_at: { type: GraphQLString },
     updated_at: { type: GraphQLString },
-  },
-});
-
-const SkillType = new GraphQLObjectType({
-  name: "Skill",
-  fields: {
-    id: { type: GraphQLInt },
-    user_id: { type: GraphQLInt },
-    skill: { type: GraphQLString },
-    rating: { type: GraphQLInt },
+    skills: {
+      type: new GraphQLList(SkillType),
+    },
   },
 });
 
@@ -41,11 +44,34 @@ const schema = new GraphQLSchema({
         type: new GraphQLList(UserType),
         resolve: async () => {
           return new Promise((resolve, reject) => {
-            db.all("SELECT * FROM users", (err, rows) => {
+            db.all("SELECT * FROM users", async (err, userRows: any[]) => {
               if (err) {
                 reject(err);
+                return;
               }
-              resolve(rows);
+
+              const usersWithSkills = await Promise.all(
+                userRows.map(async (userRow) => {
+                  const skills = await new Promise(
+                    (resolveSkills, rejectSkills) => {
+                      db.all(
+                        "SELECT * FROM skills WHERE user_id = ?",
+                        [userRow.id],
+                        (err, skillRows) => {
+                          if (err) {
+                            rejectSkills(err);
+                            return;
+                          }
+                          resolveSkills(skillRows);
+                        }
+                      );
+                    }
+                  );
+                  return { ...userRow, skills };
+                })
+              );
+
+              resolve(usersWithSkills);
             });
           });
         },
@@ -60,18 +86,35 @@ const schema = new GraphQLSchema({
             db.get(
               "SELECT * FROM users WHERE id = ?",
               [args.id],
-              (err, row) => {
+              async (err, userRow: any[]) => {
                 if (err) {
                   reject(err);
+                  return;
                 }
-                resolve(row);
+
+                const skills = await new Promise(
+                  (resolveSkills, rejectSkills) => {
+                    db.all(
+                      "SELECT * FROM skills WHERE user_id = ?",
+                      [args.id],
+                      (err, skillRows) => {
+                        if (err) {
+                          rejectSkills(err);
+                          return;
+                        }
+                        resolveSkills(skillRows);
+                      }
+                    );
+                  }
+                );
+
+                const userWithSkills = { ...userRow, skills };
+                resolve(userWithSkills);
               }
             );
           });
         },
       },
-      
-     
     },
   }),
 });

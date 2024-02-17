@@ -7,7 +7,7 @@ interface Skill {
   rating: number;
 }
 
-interface Person {
+interface User {
   name: string;
   company: string;
   email: string;
@@ -49,7 +49,7 @@ const createAndInsertDB = () => {
         )
       `);
 
-    const people = data as Person[];
+    const people = data as User[];
 
     db.run("BEGIN TRANSACTION");
 

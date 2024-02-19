@@ -1,5 +1,3 @@
-
-
 export const typeDefs = `
 type User {
     id: ID!
@@ -7,15 +5,13 @@ type User {
     company: String
     email: String!
     phone: String!
-    created_at: String!
-    updated_at: String!
     skills: [Skill!]!
 }
 
 type Skill {
     id: ID!
     user_id: ID!
-    name: String!
+    skill: String!
     rating: Int!
 }
 
@@ -35,4 +31,4 @@ input UpdateUserInput {
     email: String
     phone: String
 }
-`
+`;

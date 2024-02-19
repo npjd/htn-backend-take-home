@@ -2,12 +2,13 @@ import { Database } from "sqlite3";
 import data from "./data.json";
 import fs from "fs";
 
-interface Skill {
+export interface Skill {
   skill: string;
   rating: number;
 }
 
-interface User {
+export interface User {
+  id: number;
   name: string;
   company: string;
   email: string;
@@ -22,7 +23,6 @@ export const getDB = (): Database => {
   return new Database("main.db");
 };
 
-// TODO: add some sort of error handling?
 const createAndInsertDB = () => {
   const db = new Database("main.db");
 

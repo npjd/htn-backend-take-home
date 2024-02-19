@@ -1,48 +1,48 @@
-// @ts-nocheck
-
 import { getDB } from "./db";
+import { User, Skill } from "./db";
 
 const db = getDB();
 
+// TODO: FIX ANY TYPES
+
 export const resolvers = {
   Query: {
-    users: () => {
-      const users = db.all("SELECT * FROM users");
-      return users;
-    },
-    user: (_, { id }) => {
-      const user = db.get("SELECT * FROM users WHERE id = ?", id);
-      return user;
-    },
-    skills: (_, { min_frequency, max_frequency }) => {
-      // Retrieve skills based on the provided frequency range
-      let query =
-        "SELECT skill AS name, COUNT(*) AS frequency FROM skills GROUP BY skill";
-      const params = [];
-
-      if (min_frequency !== undefined) {
-        query += " HAVING frequency >= ?";
-        params.push(min_frequency);
+    users: async (): Promise<User[]> => {
+      try {
+        const users: User[] = await getUsersWithSkills();
+        return users;
+      } catch (error) {
+        console.error("Error retrieving users:", error);
+        return [];
       }
-
-      if (max_frequency !== undefined) {
-        query += " AND frequency <= ?";
-        params.push(max_frequency);
-      }
-
-      const skills = db.all(query, params);
-      return skills;
     },
-  },
-  User: {
-    skills: (user) => {
-      // Retrieve the skills associated with a specific user
-      const skills = db.all("SELECT * FROM skills WHERE user_id = ?", user.id);
-      return skills;
+    user: async (_: any, { id }: { id: number }): Promise<User | null> => {
+      try {
+        const user: User | undefined = await getUserWithSkills(id);
+        return user || null;
+      } catch (error) {
+        console.error("Error retrieving user:", error);
+        return null;
+      }
+    },
+    skills: async (
+      _: any,
+      { minFreq, maxFreq }: { minFreq: number; maxFreq: number }
+    ) => {
+      try {
+        const skills = await getSkillsWithFrequency(
+          minFreq,
+          maxFreq
+        );
+        return skills;
+      } catch (error) {
+        console.error("Error retrieving skills with frequency:", error);
+        return [];
+      }
     },
   },
   Mutation: {
-    updateUser: (_, { id, data }) => {
+    updateUser: (_: any, { id, data }: any) => {
       // Update a specific user with the provided data
       const { name, company, email, phone } = data;
       const updateQuery =
@@ -55,3 +55,106 @@ export const resolvers = {
     },
   },
 };
+
+async function getUsersWithSkills(): Promise<User[]> {
+  return new Promise((resolve, reject) => {
+    db.all("SELECT * FROM users", async (err, rows) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+
+      const users: User[] = [];
+      for (const row of rows) {
+        const user = row as User;
+        const skills = await getSkillsForUser(user.id);
+        user.skills = skills;
+        users.push(user);
+      }
+      resolve(users);
+    });
+  });
+}
+
+async function getUserWithSkills(id: number): Promise<User | undefined> {
+  return new Promise((resolve, reject) => {
+    db.get("SELECT * FROM users WHERE id = ?", [id], async (err, row) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      if (!row) {
+        resolve(undefined);
+        return;
+      }
+      const user = row as User;
+      const skills = await getSkillsForUser(user.id);
+      user.skills = skills;
+      resolve(user);
+    });
+  });
+}
+
+function getSkillsForUser(userId: number): Promise<Skill[]> {
+  return new Promise((resolve, reject) => {
+    db.all(
+      "SELECT * FROM skills WHERE user_id = ?",
+      [userId],
+      (err, skillRows) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        const skills = skillRows as Skill[];
+        resolve(skills);
+      }
+    );
+  });
+}
+
+async function getSkillsWithFrequency(
+  minFreq: number | undefined,
+  maxFreq: number | undefined
+): Promise<{ skill: string; frequency: number }[]> {
+  return new Promise((resolve, reject) => {
+    let query =
+      "SELECT skill, COUNT(*) as frequency FROM skills GROUP BY skill";
+    let params = [];
+
+    if (minFreq !== undefined || maxFreq !== undefined) {
+      query =
+        "SELECT skill, COUNT(*) as frequency FROM skills GROUP BY skill HAVING";
+    }
+
+    if (minFreq !== undefined) {
+      query += " frequency >= ?";
+      params.push(minFreq);
+    }
+
+    if (minFreq !== undefined && maxFreq !== undefined) {
+      query += " AND";
+    }
+
+    if (maxFreq !== undefined) {
+      query += " frequency <= ?";
+      params.push(maxFreq);
+    }
+
+    db.all(
+      query,
+      params,
+      (err, rows: { skill: string; frequency: number }[]) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        const skillsWithFrequency = rows.map((row) => ({
+          skill: row.skill,
+          frequency: row.frequency,
+        }));
+        resolve(skillsWithFrequency);
+      }
+    );
+  });
+}

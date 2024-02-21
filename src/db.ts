@@ -3,6 +3,8 @@ import data from "./data.json";
 import fs from "fs";
 
 export interface Skill {
+  id: number;
+  user_id: number;
   skill: string;
   rating: number;
 }

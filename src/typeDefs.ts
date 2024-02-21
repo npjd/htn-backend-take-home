@@ -30,5 +30,11 @@ input UpdateUserInput {
     company: String
     email: String
     phone: String
+    skills: [SkillInput!]
+}
+
+input SkillInput {
+    skill: String!
+    rating: Int!
 }
 `;

@@ -57,9 +57,7 @@ const createAndInsertDB = () => {
           name TEXT,
           company TEXT,
           email TEXT,
-          phone TEXT,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          phone TEXT
         )
       `);
 
@@ -88,7 +86,8 @@ const createAndInsertDB = () => {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT,
             total_quantity INTEGER,
-            available_quantity INTEGER 
+            available_quantity INTEGER,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     `);
 
@@ -98,6 +97,7 @@ const createAndInsertDB = () => {
             user_id INTEGER,
             hardware_id INTEGER,
             owned_quantity INTEGER,
+            UNIQUE(user_id, hardware_id),
             FOREIGN KEY (user_id) REFERENCES users(id),
             FOREIGN KEY (hardware_id) REFERENCES hardware(id)
         )

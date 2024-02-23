@@ -25,12 +25,13 @@ export const resolvers = {
     },
     skills: async (
       _: any,
-      //   these are nullable
-
       {
         min_frequency,
         max_frequency,
-      }: { min_frequency: number; max_frequency: number }
+      }: {
+        min_frequency: number | undefined;
+        max_frequency: number | undefined;
+      }
     ): Promise<{ skill: string; frequency: number }[] | null> => {
       try {
         const skills = await getSkillsWithFrequency(
@@ -168,13 +169,110 @@ export const resolvers = {
         throw new Error("Failed to scan user.");
       }
     },
+    checkOutHardware: async (
+      _: any,
+      {
+        hardwareId,
+        userId,
+        quantity,
+      }: { hardwareId: number; userId: number; quantity: number }
+    ): Promise<boolean> => {
+      try {
+        // Check if the hardware exists
+        const existingHardware = await getHardwareById(hardwareId);
+        if (!existingHardware) {
+          throw new Error(`Hardware with ID ${hardwareId} does not exist.`);
+        }
+
+        // Check if the user exists
+        const existingUser = await getUser(userId);
+        if (!existingUser) {
+          throw new Error(`User with ID ${userId} does not exist.`);
+        }
+
+        // Check if the quantity is available
+        if (existingHardware.available_quantity < quantity) {
+          throw new Error(
+            `Not enough quantity available for hardware with ID ${hardwareId}.`
+          );
+        }
+
+        // Update the available quantity
+        existingHardware.available_quantity -= quantity;
+
+        // Update the hardware in the database
+        await updateHardwareData(existingHardware);
+
+        // Insert the ownership data into the database
+        await upsertOwnershipData(hardwareId, userId, quantity);
+
+        return true;
+      } catch (error) {
+        console.error("Error checking out hardware:", error);
+        throw new Error("Failed to check out hardware.");
+      }
+    },
+    checkInHardware: async (
+      _: any,
+      {
+        hardwareId,
+        userId,
+        quantity,
+      }: { hardwareId: number; userId: number; quantity: number }
+    ): Promise<boolean> => {
+      try {
+        // Check if the hardware exists
+        const existingHardware = await getHardwareById(hardwareId);
+        if (!existingHardware) {
+          throw new Error(`Hardware with ID ${hardwareId} does not exist.`);
+        }
+
+        // Check if the user exists
+        const existingUser = await getUser(userId);
+        if (!existingUser) {
+          throw new Error(`User with ID ${userId} does not exist.`);
+        }
+
+        // Check if the user has the hardware
+        const existingOwnership = await getOwnersForHardware(hardwareId);
+        const userOwnership = existingOwnership.find(
+          (ownership) => ownership.user_id == userId
+        );
+        if (!userOwnership) {
+          throw new Error(
+            `User with ID ${userId} does not own hardware with ID ${hardwareId}.`
+          );
+        }
+
+        // Check if the user has enough quantity
+        if (userOwnership.owned_quantity < quantity) {
+          throw new Error(
+            `User with ID ${userId} does not own enough quantity of hardware with ID ${hardwareId}.`
+          );
+        }
+
+        // Update the available quantity
+        existingHardware.available_quantity += quantity;
+
+        // Update the hardware in the database
+        await updateHardwareData(existingHardware);
+
+        // Update the ownership data in the database
+        await upsertOwnershipData(hardwareId, userId, -quantity);
+
+        return true;
+      } catch (error) {
+        console.error("Error checking in hardware:", error);
+        throw new Error("Failed to check in hardware.");
+      }
+    },
   },
 };
 
 const updateUserData = async (user: User): Promise<void> => {
   return new Promise((resolve, reject) => {
     db.run(
-      "UPDATE users SET name = ?, company = ?, email = ?, phone = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+      "UPDATE users SET name = ?, company = ?, email = ?, phone = ? WHERE id = ?",
       [user.name, user.company, user.email, user.phone, user.id],
       (err) => {
         if (err) {
@@ -438,6 +536,47 @@ const getOwnersForHardware = (
         }
         const owners = ownerRows as HardwareOwners[];
         resolve(owners);
+      }
+    );
+  });
+};
+
+const updateHardwareData = async (hardware: Hardware): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    db.run(
+      "UPDATE hardware SET name = ?, total_quantity = ?, available_quantity = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+      [
+        hardware.name,
+        hardware.total_quantity,
+        hardware.available_quantity,
+        hardware.id,
+      ],
+      (err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve();
+      }
+    );
+  });
+};
+
+const upsertOwnershipData = async (
+  hardwareId: number,
+  userId: number,
+  quantity: number
+): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    db.run(
+      "INSERT INTO hardware_owners (user_id, hardware_id, owned_quantity) VALUES (?, ?, ?) ON CONFLICT(user_id, hardware_id) DO UPDATE SET owned_quantity = owned_quantity + ?",
+      [userId, hardwareId, quantity, quantity],
+      (err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve();
       }
     );
   });

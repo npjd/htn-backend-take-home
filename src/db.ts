@@ -92,7 +92,7 @@ const createAndInsertDB = () => {
             hardware_id INTEGER,
             user_id INTEGER,
             quantity INTEGER,
-            transaction_type ENUM('borrow', 'return'),
+            transaction_type VARCHAR(10) CHECK (transaction_type IN ('borrow', 'return')),
             transaction_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (hardware_id) REFERENCES hardware(id),
             FOREIGN KEY (user_id) REFERENCES users(id)

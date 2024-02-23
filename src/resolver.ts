@@ -1,5 +1,5 @@
-import { getDB } from "./db";
-import { User, Skill, Event } from "./db";
+import { HardwareOwners, getDB } from "./db";
+import { User, Skill, Event, Hardware } from "./db";
 
 const db = getDB();
 
@@ -41,6 +41,27 @@ export const resolvers = {
       } catch (error) {
         console.error("Error retrieving skills with frequency:", error);
         return [];
+      }
+    },
+    hardware: async (): Promise<Hardware[]> => {
+      try {
+        const hardwares: Hardware[] = await getHardwares();
+        return hardwares;
+      } catch (error) {
+        console.error("Error retrieving hardware:", error);
+        return [];
+      }
+    },
+    hardwareById: async (
+      _: any,
+      { hardwareId }: { hardwareId: number }
+    ): Promise<Hardware | null> => {
+      try {
+        const hardware: Hardware | null = await getHardwareById(hardwareId);
+        return hardware;
+      } catch (error) {
+        console.error("Error retrieving hardware:", error);
+        return null;
       }
     },
   },
@@ -323,8 +344,6 @@ const getSkillsWithFrequency = async (
   });
 };
 
-
-
 const insertScanData = async (
   userId: number,
   event: string
@@ -355,6 +374,70 @@ const insertScanData = async (
           return;
         }
         resolve(true);
+      }
+    );
+  });
+};
+
+const getHardwares = async (): Promise<Hardware[]> => {
+  return new Promise((resolve, reject) => {
+    db.all("SELECT * FROM hardware", async (err, rows) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+
+      const hardwares: Hardware[] = [];
+      for (const row of rows) {
+        const hardware = row as Hardware;
+        const owners = await getOwnersForHardware(hardware.id);
+        hardware.owners = owners;
+        hardwares.push(hardware);
+      }
+      resolve(hardwares);
+    });
+  });
+};
+
+const getHardwareById = async (
+  hardwareId: number
+): Promise<Hardware | null> => {
+  return new Promise((resolve, reject) => {
+    db.get(
+      "SELECT * FROM hardware WHERE id = ?",
+      [hardwareId],
+      async (err, row) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        if (!row) {
+          resolve(null);
+          return;
+        }
+        const hardware = row as Hardware;
+        const owners = await getOwnersForHardware(hardware.id);
+        hardware.owners = owners;
+        resolve(hardware);
+      }
+    );
+  });
+};
+
+const getOwnersForHardware = (
+  hardwareId: number
+): Promise<HardwareOwners[]> => {
+  return new Promise((resolve, reject) => {
+    db.all(
+      "SELECT * FROM hardware_owners WHERE hardware_id = ?",
+      [hardwareId],
+      (err, ownerRows) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        const owners = ownerRows as HardwareOwners[];
+        resolve(owners);
       }
     );
   });

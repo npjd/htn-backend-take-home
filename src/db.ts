@@ -146,7 +146,7 @@ const createAndInsertDB = () => {
             [
               hardware.name,
               hardware.total_quantity,
-              hardware.available_quantity,
+              hardware.total_quantity,
             ],
             function (err) {
               if (err) {

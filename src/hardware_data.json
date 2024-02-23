@@ -1,26 +1,26 @@
 [
     {
         "name": "Raspberry Pi",
-        "available_quantity": 10
+        "total_quantity": 10
     },
     {
         "name": "Arduino",
-        "available_quantity": 5
+        "total_quantity": 5
     },
     {
         "name": "ESP8266",
-        "available_quantity": 3
+        "total_quantity": 3
     },
     {
         "name": "ESP32",
-        "available_quantity": 2
+        "total_quantity": 2
     },
     {
         "name": "STM32",
-        "available_quantity": 1
+        "total_quantity": 1
     },
     {
         "name": "BeagleBone",
-        "available_quantity": 10
+        "total_quantity": 10
     }
 ]

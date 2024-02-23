@@ -45,7 +45,7 @@ export const resolvers = {
     },
     hardwares: async (): Promise<Hardware[]> => {
       return new Promise((resolve, reject) => {
-        db.all("SELECT * FROM hardwares", (err, rows) => {
+        db.all("SELECT * FROM hardware", (err, rows) => {
           if (err) {
             reject(err);
             return;
@@ -53,6 +53,29 @@ export const resolvers = {
           const hardwares = rows as Hardware[];
           resolve(hardwares);
         });
+      });
+    },
+    hardware: async (
+      _: any,
+      { hardwareId }: { hardwareId: number }
+    ): Promise<Hardware | null> => {
+      return new Promise((resolve, reject) => {
+        db.get(
+          "SELECT * FROM hardware WHERE id = ?",
+          [hardwareId],
+          (err, row) => {
+            if (err) {
+              reject(err);
+              return;
+            }
+            if (!row) {
+              resolve(null);
+              return;
+            }
+            const hardware = row as Hardware;
+            resolve(hardware);
+          }
+        );
       });
     },
   },

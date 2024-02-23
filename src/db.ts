@@ -38,6 +38,7 @@ export interface User {
   phone: string;
   skills: Skill[];
   events: Event[];
+  owned_hardware: HardwareOwners[];
 }
 
 export const getDB = (): Database => {

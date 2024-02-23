@@ -9,6 +9,7 @@ type User {
     phone: String!
     skills: [Skill!]!
     events: [Event!]!
+    owned_hardware: [HardwareOwners!]!
 }
 
 type HardwareOwners {

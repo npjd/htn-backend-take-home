@@ -331,8 +331,10 @@ const getUsers = async (): Promise<User[]> => {
         const user = row as User;
         const skills = await getSkillsForUser(user.id);
         const events = await getEventsForUser(user.id);
+        const ownedHardware = await getHardwareOwnedByUser(user.id);
         user.skills = skills;
         user.events = events;
+        user.owned_hardware = ownedHardware;
         users.push(user);
       }
       resolve(users);
@@ -354,8 +356,10 @@ const getUser = async (id: number): Promise<User | undefined> => {
       const user = row as User;
       const skills = await getSkillsForUser(user.id);
       const events = await getEventsForUser(user.id);
+      const ownedHardware = await getHardwareOwnedByUser(user.id);
       user.skills = skills;
       user.events = events;
+      user.owned_hardware = ownedHardware;
       resolve(user);
     });
   });
@@ -577,6 +581,23 @@ const upsertOwnershipData = async (
           return;
         }
         resolve();
+      }
+    );
+  });
+};
+
+const getHardwareOwnedByUser = (userId: number): Promise<HardwareOwners[]> => {
+  return new Promise((resolve, reject) => {
+    db.all(
+      "SELECT * FROM hardware_owners WHERE user_id = ?",
+      [userId],
+      (err, ownerRows) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        const owners = ownerRows as HardwareOwners[];
+        resolve(owners);
       }
     );
   });

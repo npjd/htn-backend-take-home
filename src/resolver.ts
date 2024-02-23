@@ -288,7 +288,6 @@ const getSkillsWithFrequency = async (
       "SELECT skill, COUNT(*) as frequency FROM skills GROUP BY skill";
     let params = [];
 
-    console.log(minFreq, maxFreq);
 
     if (minFreq !== undefined || maxFreq !== undefined) {
       query =
@@ -309,7 +308,6 @@ const getSkillsWithFrequency = async (
       params.push(maxFreq);
     }
 
-    console.log(query);
 
     db.all(
       query,

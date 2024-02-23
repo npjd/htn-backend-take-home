@@ -1,5 +1,6 @@
 import { Database } from "sqlite3";
 import data from "./data.json";
+import hardwareJson from "./hardware_data.json";
 import fs from "fs";
 
 export interface Skill {
@@ -82,7 +83,6 @@ const createAndInsertDB = () => {
             name TEXT,
             total_quantity INTEGER,
             available_quantity INTEGER
-            
         )
     `);
 
@@ -100,10 +100,11 @@ const createAndInsertDB = () => {
     `);
 
     const people = data as User[];
+    const hardwareData = hardwareJson as Hardware[];
 
     db.run("BEGIN TRANSACTION");
 
-    const insertions = people.map(
+    const insertUsersPromise = people.map(
       (person) =>
         new Promise<void>((resolve, reject) => {
           db.run(
@@ -119,9 +120,9 @@ const createAndInsertDB = () => {
                 const userId = this.lastID;
 
                 const insertSkillsStmt = db.prepare(`
-                INSERT INTO skills (user_id, skill, rating)
-                VALUES (?, ?, ?)
-              `);
+                  INSERT INTO skills (user_id, skill, rating)
+                  VALUES (?, ?, ?)
+                `);
                 for (const skill of person.skills) {
                   insertSkillsStmt.run(userId, skill.skill, skill.rating);
                 }
@@ -134,14 +135,38 @@ const createAndInsertDB = () => {
         })
     );
 
-    Promise.all(insertions)
+    const insertHardwarePromise = hardwareData.map(
+      (hardware) =>
+        new Promise<void>((resolve, reject) => {
+          db.run(
+            `
+            INSERT INTO hardware (name, total_quantity, available_quantity)
+            VALUES (?, ?, ?)
+          `,
+            [
+              hardware.name,
+              hardware.total_quantity,
+              hardware.available_quantity,
+            ],
+            function (err) {
+              if (err) {
+                reject(err);
+              } else {
+                resolve();
+              }
+            }
+          );
+        })
+    );
+
+    Promise.all([...insertUsersPromise, ...insertHardwarePromise])
       .then(() => {
         db.run("COMMIT", () => {
           db.close();
         });
       })
       .catch((err) => {
-        console.error("Error inserting users:", err);
+        console.error("Error inserting data:", err);
         db.run("ROLLBACK", () => {
           db.close();
         });

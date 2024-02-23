@@ -1,9 +1,7 @@
 import { getDB } from "./db";
-import { User, Skill, Event } from "./db";
+import { User, Skill, Event, Hardware } from "./db";
 
 const db = getDB();
-
-// TODO: FIX ANY TYPES
 
 export const resolvers = {
   Query: {
@@ -35,7 +33,6 @@ export const resolvers = {
       }: { min_frequency: number; max_frequency: number }
     ): Promise<{ skill: string; frequency: number }[] | null> => {
       try {
-        
         const skills = await getSkillsWithFrequency(
           min_frequency,
           max_frequency
@@ -45,6 +42,18 @@ export const resolvers = {
         console.error("Error retrieving skills with frequency:", error);
         return [];
       }
+    },
+    hardwares: async (): Promise<Hardware[]> => {
+      return new Promise((resolve, reject) => {
+        db.all("SELECT * FROM hardwares", (err, rows) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          const hardwares = rows as Hardware[];
+          resolve(hardwares);
+        });
+      });
     },
   },
   Mutation: {
@@ -288,7 +297,6 @@ const getSkillsWithFrequency = async (
       "SELECT skill, COUNT(*) as frequency FROM skills GROUP BY skill";
     let params = [];
 
-
     if (minFreq !== undefined || maxFreq !== undefined) {
       query =
         "SELECT skill, COUNT(*) as frequency FROM skills GROUP BY skill HAVING";
@@ -307,7 +315,6 @@ const getSkillsWithFrequency = async (
       query += " frequency <= ?";
       params.push(maxFreq);
     }
-
 
     db.all(
       query,

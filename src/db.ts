@@ -22,6 +22,10 @@ export interface Hardware {
   name: string;
   total_quantity: number;
   available_quantity: number;
+  owners: {
+    user_id: number;
+    owned_quantity: number;
+  }[];
 }
 
 export interface User {
@@ -79,25 +83,11 @@ const createAndInsertDB = () => {
 
     db.run(`
         CREATE TABLE IF NOT EXISTS hardware (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT,
-            total_quantity INTEGER,
-            available_quantity INTEGER
+            
         )
-    `);
+    `)
 
-    db.run(`
-        CREATE TABLE IF NOT EXISTS hardware_transaction (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            hardware_id INTEGER,
-            user_id INTEGER,
-            quantity INTEGER,
-            transaction_type VARCHAR(10) CHECK (transaction_type IN ('borrow', 'return')),
-            transaction_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (hardware_id) REFERENCES hardware(id),
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        )
-    `);
+
 
     const people = data as User[];
     const hardwareData = hardwareJson as Hardware[];

@@ -1,5 +1,5 @@
 import { getDB } from "./db";
-import { User, Skill, Event, Hardware } from "./db";
+import { User, Skill, Event } from "./db";
 
 const db = getDB();
 
@@ -42,41 +42,6 @@ export const resolvers = {
         console.error("Error retrieving skills with frequency:", error);
         return [];
       }
-    },
-    hardwares: async (): Promise<Hardware[]> => {
-      return new Promise((resolve, reject) => {
-        db.all("SELECT * FROM hardware", (err, rows) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-          const hardwares = rows as Hardware[];
-          resolve(hardwares);
-        });
-      });
-    },
-    hardware: async (
-      _: any,
-      { hardwareId }: { hardwareId: number }
-    ): Promise<Hardware | null> => {
-      return new Promise((resolve, reject) => {
-        db.get(
-          "SELECT * FROM hardware WHERE id = ?",
-          [hardwareId],
-          (err, row) => {
-            if (err) {
-              reject(err);
-              return;
-            }
-            if (!row) {
-              resolve(null);
-              return;
-            }
-            const hardware = row as Hardware;
-            resolve(hardware);
-          }
-        );
-      });
     },
   },
   Mutation: {
@@ -357,6 +322,8 @@ const getSkillsWithFrequency = async (
     );
   });
 };
+
+
 
 const insertScanData = async (
   userId: number,

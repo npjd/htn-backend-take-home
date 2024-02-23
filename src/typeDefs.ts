@@ -9,24 +9,8 @@ type User {
     phone: String!
     skills: [Skill!]!
     events: [Event!]!
-    hardwares: [UserOwnedHardware!]!
 }
 
-type UserOwnedHardware {
-    id: ID!
-    user_id: ID!
-    hardware_id: ID!
-    total_quantity: Int!
-    available_quantity: Int!
-    num_owned: Int!
-}
-
-type Hardware {
-    id: ID!
-    name: String!
-    total_quantity: Int!
-    available_quantity: Int!
-}
 
 type Event {
     id: ID!
@@ -49,15 +33,11 @@ type Query {
     users: [User!]!
     user(userId: ID!): User
     skills(min_frequency: Int, max_frequency: Int): [SkillFrequency!]!
-    hardwares: [Hardware!]!
-    hardware(hardwareId: ID!): Hardware
 }
 
 type Mutation {
     updateUser(userId: ID!, data: UpdateUserInput!): User
     scanUser(userId: ID!, event: String!): Boolean
-    signOutHardware(userId: ID!, hardwareId: ID!, quantity: Int!): Boolean
-    returnHardware(userId: ID!, hardwareId: ID!, quantity: Int!): Boolean
 }
 
 input UpdateUserInput {

@@ -9,6 +9,13 @@ export interface Skill {
   rating: number;
 }
 
+export interface Event {
+  id: number;
+  user_id: number;
+  event: string;
+  scanned_at: string;
+}
+
 export interface User {
   id: number;
   name: string;
@@ -16,6 +23,7 @@ export interface User {
   email: string;
   phone: string;
   skills: Skill[];
+  events: Event[];
 }
 
 export const getDB = (): Database => {
@@ -50,6 +58,16 @@ const createAndInsertDB = () => {
           FOREIGN KEY (user_id) REFERENCES users(id)
         )
       `);
+
+    db.run(`
+        CREATE TABLE IF NOT EXISTS scans (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            event TEXT,
+            scanned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+    `);
 
     const people = data as User[];
 

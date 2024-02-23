@@ -6,6 +6,14 @@ type User {
     email: String!
     phone: String!
     skills: [Skill!]!
+    events: [Event!]!
+}
+
+type Event {
+    id: ID!
+    user_id: ID!
+    event: String!
+    scanned_at: String!
 }
 
 type Skill {
@@ -17,12 +25,13 @@ type Skill {
 
 type Query {
     users: [User!]!
-    user(id: ID!): User
+    user(userId: ID!): User
     skills(min_frequency: Int, max_frequency: Int): [Skill!]!
 }
 
 type Mutation {
-    updateUser(id: ID!, data: UpdateUserInput!): User
+    updateUser(userId: ID!, data: UpdateUserInput!): User
+    scanUser(userId: ID!, event: String!): Boolean
 }
 
 input UpdateUserInput {

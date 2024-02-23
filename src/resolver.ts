@@ -67,6 +67,7 @@ export const resolvers = {
     },
   },
   Mutation: {
+    // TODO: REFACTOR THIS SHIT
     updateUser: async (
       _: any,
       { id, data }: { id: number; data: User }
@@ -78,6 +79,7 @@ export const resolvers = {
           throw new Error(`User with ID ${id} does not exist.`);
         }
 
+        
         // Update user properties
         switch (true) {
           case !!data.name:
@@ -161,7 +163,6 @@ export const resolvers = {
         if (!existingUser) {
           throw new Error(`User with ID ${userId} does not exist.`);
         }
-
         // Insert the scan event into the database
         return await insertScanData(userId, event);
       } catch (error) {
@@ -169,6 +170,7 @@ export const resolvers = {
         throw new Error("Failed to scan user.");
       }
     },
+    // TODO: RETURN FALSE HERE
     checkOutHardware: async (
       _: any,
       {
@@ -212,6 +214,7 @@ export const resolvers = {
         throw new Error("Failed to check out hardware.");
       }
     },
+    // TODO: RETURN FALSE HERE
     checkInHardware: async (
       _: any,
       {
@@ -360,6 +363,7 @@ const getUser = async (id: number): Promise<User | undefined> => {
       user.skills = skills;
       user.events = events;
       user.owned_hardware = ownedHardware;
+
       resolve(user);
     });
   });
@@ -451,7 +455,6 @@ const insertScanData = async (
   event: string
 ): Promise<boolean> => {
   return new Promise((resolve, reject) => {
-    // check if user already scanned
     db.get(
       "SELECT * FROM events WHERE user_id = ? AND event = ?",
       [userId, event],

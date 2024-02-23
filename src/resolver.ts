@@ -27,10 +27,19 @@ export const resolvers = {
     },
     skills: async (
       _: any,
-      { minFreq, maxFreq }: { minFreq: number; maxFreq: number }
+      //   these are nullable
+
+      {
+        min_frequency,
+        max_frequency,
+      }: { min_frequency: number; max_frequency: number }
     ): Promise<{ skill: string; frequency: number }[] | null> => {
       try {
-        const skills = await getSkillsWithFrequency(minFreq, maxFreq);
+        
+        const skills = await getSkillsWithFrequency(
+          min_frequency,
+          max_frequency
+        );
         return skills;
       } catch (error) {
         console.error("Error retrieving skills with frequency:", error);
@@ -256,7 +265,7 @@ const getSkillsForUser = (userId: number): Promise<Skill[]> => {
 const getEventsForUser = (userId: number): Promise<Event[]> => {
   return new Promise((resolve, reject) => {
     db.all(
-      "SELECT * FROM scans WHERE user_id = ?",
+      "SELECT * FROM events WHERE user_id = ?",
       [userId],
       (err, eventRows) => {
         if (err) {
@@ -279,6 +288,8 @@ const getSkillsWithFrequency = async (
       "SELECT skill, COUNT(*) as frequency FROM skills GROUP BY skill";
     let params = [];
 
+    console.log(minFreq, maxFreq);
+
     if (minFreq !== undefined || maxFreq !== undefined) {
       query =
         "SELECT skill, COUNT(*) as frequency FROM skills GROUP BY skill HAVING";
@@ -297,6 +308,8 @@ const getSkillsWithFrequency = async (
       query += " frequency <= ?";
       params.push(maxFreq);
     }
+
+    console.log(query);
 
     db.all(
       query,
@@ -324,7 +337,7 @@ const insertScanData = async (
   return new Promise((resolve, reject) => {
     // check if user already scanned
     db.get(
-      "SELECT * FROM scans WHERE user_id = ? AND event = ?",
+      "SELECT * FROM events WHERE user_id = ? AND event = ?",
       [userId, event],
       (err, row) => {
         if (err) {
@@ -339,7 +352,7 @@ const insertScanData = async (
     );
 
     db.run(
-      "INSERT INTO scans (user_id, event) VALUES (?, ?)",
+      "INSERT INTO events (user_id, event) VALUES (?, ?)",
       [userId, event],
       (err) => {
         if (err) {

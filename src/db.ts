@@ -16,6 +16,13 @@ export interface Event {
   scanned_at: string;
 }
 
+export interface Hardware {
+  id: number;
+  name: string;
+  total_quantity: number;
+  available_quantity: number;
+}
+
 export interface User {
   id: number;
   name: string;
@@ -60,11 +67,34 @@ const createAndInsertDB = () => {
       `);
 
     db.run(`
-        CREATE TABLE IF NOT EXISTS scans (
+        CREATE TABLE IF NOT EXISTS events (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
             event TEXT,
             scanned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+    `);
+
+    db.run(`
+        CREATE TABLE IF NOT EXISTS hardware (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            total_quantity INTEGER,
+            available_quantity INTEGER
+            
+        )
+    `);
+
+    db.run(`
+        CREATE TABLE IF NOT EXISTS hardware_transaction (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            hardware_id INTEGER,
+            user_id INTEGER,
+            quantity INTEGER,
+            transaction_type ENUM('borrow', 'return'),
+            transaction_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (hardware_id) REFERENCES hardware(id),
             FOREIGN KEY (user_id) REFERENCES users(id)
         )
     `);

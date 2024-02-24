@@ -7,6 +7,7 @@ import {
   getDB,
   UserHardwareOwnership,
 } from "./db";
+import { GraphQLError } from "graphql";
 
 const db = getDB();
 
@@ -17,17 +18,18 @@ export const resolvers = {
         const users: User[] = await getUsers();
         return users;
       } catch (error) {
-        console.error("Error retrieving users:", error);
-        return [];
+        throw new GraphQLError("Failed to retrieve users.");
       }
     },
-    user: async (_: any, { id }: { id: number }): Promise<User | null> => {
+    user: async (
+      _: any,
+      { userId }: { userId: number }
+    ): Promise<User | null> => {
       try {
-        const user: User | undefined = await getUser(id);
+        const user: User | undefined = await getUser(userId);
         return user || null;
       } catch (error) {
-        console.error("Error retrieving user:", error);
-        return null;
+        throw new GraphQLError("Failed to retrieve user.");
       }
     },
     skills: async (
@@ -47,8 +49,7 @@ export const resolvers = {
         );
         return skills;
       } catch (error) {
-        console.error("Error retrieving skills with frequency:", error);
-        return [];
+        throw new GraphQLError("Failed to retrieve skills with frequency.");
       }
     },
     hardware: async (): Promise<Hardware[]> => {
@@ -56,8 +57,7 @@ export const resolvers = {
         const hardwares: Hardware[] = await getHardwares();
         return hardwares;
       } catch (error) {
-        console.error("Error retrieving hardware:", error);
-        return [];
+        throw new GraphQLError("Failed to retrieve hardware.");
       }
     },
     hardwareById: async (
@@ -68,21 +68,19 @@ export const resolvers = {
         const hardware: Hardware | null = await getHardwareById(hardwareId);
         return hardware;
       } catch (error) {
-        console.error("Error retrieving hardware:", error);
-        return null;
+        throw new GraphQLError("Failed to retrieve hardware.");
       }
     },
   },
   Mutation: {
     updateUser: async (
       _: any,
-      { id, data }: { id: number; data: User }
+      { userId, data }: { userId: number; data: User }
     ): Promise<User | null> => {
       try {
-        // Check if the user exists
-        const existingUser = await getUser(id);
+        const existingUser = await getUser(userId);
         if (!existingUser) {
-          throw new Error(`User with ID ${id} does not exist.`);
+          throw new GraphQLError(`User with ID ${userId} does not exist.`);
         }
 
         // Update user properties
@@ -135,7 +133,7 @@ export const resolvers = {
               const newSkill: Skill = {
                 // Set the ID to -1 for now, it will be updated after insertion
                 id: -1,
-                user_id: id,
+                user_id: userId,
                 skill,
                 rating,
               };
@@ -157,8 +155,16 @@ export const resolvers = {
 
         return existingUser;
       } catch (error) {
-        console.error("Error updating user:", error);
-        throw new Error("Failed to update user.");
+        if (error instanceof GraphQLError) {
+          // Re-throw GraphQL errors
+          throw error;
+        } else {
+          // Log other errors and return specific error response
+          console.error("Failed to update user:", error);
+          throw new GraphQLError(
+            "Failed to update user. Please try again later."
+          );
+        }
       }
     },
     scanUser: async (
@@ -169,16 +175,23 @@ export const resolvers = {
         // Check if the user exists
         const existingUser = await getUser(userId);
         if (!existingUser) {
-          throw new Error(`User with ID ${userId} does not exist.`);
+          throw new GraphQLError(`User with ID ${userId} does not exist.`);
         }
         // Insert the scan event into the database
         return await insertScanData(userId, event);
       } catch (error) {
-        console.error("Error scanning user:", error);
-        throw new Error("Failed to scan user.");
+        if (error instanceof GraphQLError) {
+          // Re-throw GraphQL errors
+          throw error;
+        } else {
+          // Log other errors and return specific error response
+          console.error("Failed to update user:", error);
+          throw new GraphQLError(
+            "Failed to update user. Please try again later."
+          );
+        }
       }
     },
-    // TODO: RETURN FALSE HERE
     checkOutHardware: async (
       _: any,
       {
@@ -191,18 +204,20 @@ export const resolvers = {
         // Check if the hardware exists
         const existingHardware = await getHardwareById(hardwareId);
         if (!existingHardware) {
-          throw new Error(`Hardware with ID ${hardwareId} does not exist.`);
+          throw new GraphQLError(
+            `Hardware with ID ${hardwareId} does not exist.`
+          );
         }
 
         // Check if the user exists
         const existingUser = await getUser(userId);
         if (!existingUser) {
-          throw new Error(`User with ID ${userId} does not exist.`);
+          throw new GraphQLError(`User with ID ${userId} does not exist.`);
         }
 
         // Check if the quantity is available
         if (existingHardware.available_quantity < quantity) {
-          throw new Error(
+          throw new GraphQLError(
             `Not enough quantity available for hardware with ID ${hardwareId}.`
           );
         }
@@ -218,11 +233,18 @@ export const resolvers = {
 
         return true;
       } catch (error) {
-        console.error("Error checking out hardware:", error);
-        throw new Error("Failed to check out hardware.");
+        if (error instanceof GraphQLError) {
+          // Re-throw GraphQL errors
+          throw error;
+        } else {
+          // Log other errors and return specific error response
+          console.error("Failed to update user:", error);
+          throw new GraphQLError(
+            "Failed to update user. Please try again later."
+          );
+        }
       }
     },
-    // TODO: RETURN FALSE HERE
     checkInHardware: async (
       _: any,
       {
@@ -235,13 +257,15 @@ export const resolvers = {
         // Check if the hardware exists
         const existingHardware = await getHardwareById(hardwareId);
         if (!existingHardware) {
-          throw new Error(`Hardware with ID ${hardwareId} does not exist.`);
+          throw new GraphQLError(
+            `Hardware with ID ${hardwareId} does not exist.`
+          );
         }
 
         // Check if the user exists
         const existingUser = await getUser(userId);
         if (!existingUser) {
-          throw new Error(`User with ID ${userId} does not exist.`);
+          throw new GraphQLError(`User with ID ${userId} does not exist.`);
         }
 
         // Check if the user has the hardware
@@ -251,14 +275,14 @@ export const resolvers = {
         );
 
         if (!userOwnership) {
-          throw new Error(
+          throw new GraphQLError(
             `User with ID ${userId} does not own hardware with ID ${hardwareId}.`
           );
         }
 
         // Check if the user has enough quantity
         if (userOwnership.owned_quantity < quantity) {
-          throw new Error(
+          throw new GraphQLError(
             `User with ID ${userId} does not own enough quantity of hardware with ID ${hardwareId}.`
           );
         }
@@ -274,8 +298,16 @@ export const resolvers = {
 
         return true;
       } catch (error) {
-        console.error("Error checking in hardware:", error);
-        throw new Error("Failed to check in hardware.");
+        if (error instanceof GraphQLError) {
+          // Re-throw GraphQL errors
+          throw error;
+        } else {
+          // Log other errors and return specific error response
+          console.error("Failed to update user:", error);
+          throw new GraphQLError(
+            "Failed to update user. Please try again later."
+          );
+        }
       }
     },
   },
@@ -361,10 +393,12 @@ const getUser = async (id: number): Promise<User | undefined> => {
         reject(err);
         return;
       }
+
       if (!row) {
         resolve(undefined);
         return;
       }
+
       const user = row as User;
       const skills = await getSkillsForUser(user.id);
       const events = await getEventsForUser(user.id);

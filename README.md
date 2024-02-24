@@ -115,7 +115,7 @@ query {
 
 ```graphql
 query {
-  user(userId: "exampleUserId") {
+  user(userId: X) {
     id
     name
     email
@@ -133,7 +133,7 @@ query {
 
 ```graphql
 mutation {
-  updateUser(userId: "exampleUserId", data: { name: "New Name", company: "New Company" }) {
+  updateUser(userId: X, data: { name: "New Name", company: "New Company" }) {
     id
     name
     company
@@ -145,7 +145,7 @@ mutation {
 
 ```graphql
 mutation {
-  scanUser(userId: "exampleUserId", event: "Scanned at Entrance") 
+  scanUser(userId: X, event: "Scanned at Entrance") 
 }
 ```
 
@@ -179,12 +179,9 @@ query {
 - **npm**: A package manager for the JavaScript programming language. It's used for managing project dependencies.
 - **ts-node**: A TypeScript execution and REPL for Node.js, with source map support. It's used for running TypeScript code directly, without compiling it first.
 
-### Design Choices
-
-
-
 ### Future Features
-- Find a way to inherit types in schema to reduce redudnacny 
-- Organize DB such that we have a log of hardware transactions for better mointoring
+- Find a way to inherit types in the schema to reduce redundancy 
+- Organize DB such that we have a log of hardware transactions for better monitoring
 - Find a way to export types from schema to resolver code for better consistency across codebase
 - Have the DB hosted on a server
+- The code in `resolver.ts` does not scale well imo if we were to add more features — it would be best to have each resolver have its functionality split across modules, and to have some common functions all these modules could interact with — for a small project like this I decided to just dump all the logic in one file

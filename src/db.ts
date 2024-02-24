@@ -30,6 +30,7 @@ export interface HardwareOwners {
   owned_quantity: number;
 }
 
+
 export interface User {
   id: number;
   name: string;
@@ -38,7 +39,12 @@ export interface User {
   phone: string;
   skills: Skill[];
   events: Event[];
-  owned_hardware: HardwareOwners[];
+  owned_hardware: UserHardwareOwnership[];
+}
+
+export interface UserHardwareOwnership {
+    hardware_id: number;
+    owned_quantity: number;
 }
 
 export const getDB = (): Database => {

@@ -1,4 +1,12 @@
-import { User, Skill, Event, Hardware,  HardwareOwners, getDB  } from "./db";
+import {
+  User,
+  Skill,
+  Event,
+  Hardware,
+  HardwareOwners,
+  getDB,
+  UserHardwareOwnership,
+} from "./db";
 
 const db = getDB();
 
@@ -66,7 +74,6 @@ export const resolvers = {
     },
   },
   Mutation: {
-    // TODO: REFACTOR THIS SHIT
     updateUser: async (
       _: any,
       { id, data }: { id: number; data: User }
@@ -78,7 +85,6 @@ export const resolvers = {
           throw new Error(`User with ID ${id} does not exist.`);
         }
 
-        
         // Update user properties
         switch (true) {
           case !!data.name:
@@ -95,19 +101,22 @@ export const resolvers = {
             break;
         }
 
+        // Update the user in the database (except their skills)
+        await updateUserData(existingUser);
+
         // Update user skills
         if (data.skills && data.skills.length > 0) {
           // Get existing skills for the user
-          const existingSkills = await getSkillsForUser(id);
+          const skills = existingUser.skills;
 
           // Map existing skills by skill name for easy lookup
-          const existingSkillsMap = existingSkills.reduce(
-            (map: any, skill: Skill) => {
-              map[skill.skill] = skill;
-              return map;
-            },
-            {}
-          );
+          const existingSkillsMap = skills.reduce((map: any, skill: Skill) => {
+            map[skill.skill] = skill;
+            return map;
+          }, {});
+
+          // Create an array to store all the promises
+          const promises: Promise<void>[] = [];
 
           // Process each skill in the input data
           for (const skillInput of data.skills) {
@@ -119,8 +128,8 @@ export const resolvers = {
               const existingSkill = existingSkillsMap[skill];
               existingSkill.rating = rating;
 
-              // Update the skill in the database
-              await updateSkillData(existingSkill);
+              // Add the updateSkillData promise to the array
+              promises.push(updateSkillData(existingSkill));
             } else {
               // Create a new skill for the user
               const newSkill: Skill = {
@@ -131,20 +140,20 @@ export const resolvers = {
                 rating,
               };
 
-              // Insert the new skill into the database
-              await insertSkillData(newSkill);
+              // Add the insertSkillData promise to the array
+              promises.push(insertSkillData(newSkill));
 
               // Add the new skill to the existing skills map for future lookups
               existingSkillsMap[skill] = newSkill;
             }
           }
 
+          // Wait for all the promises to resolve
+          await Promise.all(promises);
+
           // Update the user's skills array with the updated skills
           existingUser.skills = Object.values(existingSkillsMap);
         }
-
-        // Update the user in the database
-        await updateUserData(existingUser);
 
         return existingUser;
       } catch (error) {
@@ -198,11 +207,11 @@ export const resolvers = {
           );
         }
 
-        // Update the available quantity
-        existingHardware.available_quantity -= quantity;
-
         // Update the hardware in the database
-        await updateHardwareData(existingHardware);
+        await updateHardwareQuantity(
+          hardwareId,
+          existingHardware.available_quantity - quantity
+        );
 
         // Insert the ownership data into the database
         await upsertOwnershipData(hardwareId, userId, quantity);
@@ -236,10 +245,11 @@ export const resolvers = {
         }
 
         // Check if the user has the hardware
-        const existingOwnership = await getOwnersForHardware(hardwareId);
+        const existingOwnership = existingUser.owned_hardware;
         const userOwnership = existingOwnership.find(
-          (ownership) => ownership.user_id == userId
+          (ownership) => ownership.hardware_id === hardwareId
         );
+
         if (!userOwnership) {
           throw new Error(
             `User with ID ${userId} does not own hardware with ID ${hardwareId}.`
@@ -253,11 +263,11 @@ export const resolvers = {
           );
         }
 
-        // Update the available quantity
-        existingHardware.available_quantity += quantity;
-
         // Update the hardware in the database
-        await updateHardwareData(existingHardware);
+        await updateHardwareQuantity(
+          hardwareId,
+          existingHardware.available_quantity + quantity
+        );
 
         // Update the ownership data in the database
         await upsertOwnershipData(hardwareId, userId, -quantity);
@@ -547,16 +557,14 @@ const getOwnersForHardware = (
   });
 };
 
-const updateHardwareData = async (hardware: Hardware): Promise<void> => {
+const updateHardwareQuantity = async (
+  hardwareId: number,
+  quantity: number
+): Promise<void> => {
   return new Promise((resolve, reject) => {
     db.run(
-      "UPDATE hardware SET name = ?, total_quantity = ?, available_quantity = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-      [
-        hardware.name,
-        hardware.total_quantity,
-        hardware.available_quantity,
-        hardware.id,
-      ],
+      "UPDATE hardware SET available_quantity = ? WHERE id = ?",
+      [quantity, hardwareId],
       (err) => {
         if (err) {
           reject(err);
@@ -588,7 +596,9 @@ const upsertOwnershipData = async (
   });
 };
 
-const getHardwareOwnedByUser = (userId: number): Promise<HardwareOwners[]> => {
+const getHardwareOwnedByUser = (
+  userId: number
+): Promise<UserHardwareOwnership[]> => {
   return new Promise((resolve, reject) => {
     db.all(
       "SELECT * FROM hardware_owners WHERE user_id = ?",
@@ -598,7 +608,7 @@ const getHardwareOwnedByUser = (userId: number): Promise<HardwareOwners[]> => {
           reject(err);
           return;
         }
-        const owners = ownerRows as HardwareOwners[];
+        const owners = ownerRows as UserHardwareOwnership[];
         resolve(owners);
       }
     );

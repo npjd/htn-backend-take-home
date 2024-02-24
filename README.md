@@ -10,7 +10,7 @@ npm install
 npm start
 ```
 
-This will automatically create a DB locally. Apollo playground will also be running; you can interact with it at http://localhost:4000/
+This will automatically create a DB locally. Apollo Playground will also be running; you can interact with it at http://localhost:4000/
 
 ## Tests
 
@@ -20,7 +20,7 @@ I've provided a suite of jest tests
 npm test
 ```
 
-These are also integraated into Github Workflows
+These are also integrated into Github Workflows
 
 ## Features
 
@@ -198,8 +198,8 @@ query {
 - Find a way to export types from schema to resolver code for better consistency across codebase
 - Have the DB hosted on a server
 - The code in `resolver.ts` does not scale well imo if we were to add more features — it would be best to have each resolver have its functionality split across modules, and to have some common functions all these modules could interact with — for a small project like this I decided to just dump all the logic in one file
-- Make the tests db seperate from the server DB
+- Make the tests db separate from the server DB
 - More robust test suite
 
 
-Hopefully this is sufficient though! I really enjoyed working on this and hopefully I can keep doing this work with Hack the North!
+Hopefully, this is sufficient though! I enjoyed working on this and hopefully, I can keep doing this work with Hack the North!

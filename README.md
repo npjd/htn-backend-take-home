@@ -20,7 +20,7 @@ I've provided a suite of jest tests
 npm test
 ```
 
-These are also integrated into Github Workflows
+These are also integrated into Github Actions
 
 ## Features
 

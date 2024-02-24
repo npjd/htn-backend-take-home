@@ -125,7 +125,7 @@ query {
 
 ```graphql
 query {
-  user(userId: X) {
+  user(userId: "userId") {
     id
     name
     email
@@ -143,7 +143,7 @@ query {
 
 ```graphql
 mutation {
-  updateUser(userId: X, data: { name: "New Name", company: "New Company" }) {
+  updateUser(userId: "userId", data: { name: "New Name", company: "New Company" }) {
     id
     name
     company
@@ -155,7 +155,7 @@ mutation {
 
 ```graphql
 mutation {
-  scanUser(userId: X, event: "Scanned at Entrance") 
+  scanUser(userId: "userId", event: "Scanned at Entrance") 
 }
 ```
 

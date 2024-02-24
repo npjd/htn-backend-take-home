@@ -1,4 +1,3 @@
-// TODO: find a way to inherit the types from hardware to user_owned_hardware
 
 export const typeDefs = `
 type User {

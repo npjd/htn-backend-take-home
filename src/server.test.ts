@@ -205,8 +205,6 @@ describe("API Tests", () => {
       phone: string;
       skills: Array<any>;
     };
-
-    console.log(updatedUser);
     expect(updatedUser).toBeDefined();
 
     expect(updatedUser?.name).toBe(newName);

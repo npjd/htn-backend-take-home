@@ -30,7 +30,6 @@ export interface HardwareOwners {
   owned_quantity: number;
 }
 
-
 export interface User {
   id: number;
   name: string;
@@ -43,22 +42,31 @@ export interface User {
 }
 
 export interface UserHardwareOwnership {
-    hardware_id: number;
-    owned_quantity: number;
+  hardware_id: number;
+  owned_quantity: number;
 }
 
-export const getDB = (): Database => {
-  if (!fs.existsSync("main.db")) {
-    createAndInsertDB();
+export const getDB = async (mode: "test" | "production"): Promise<Database> => {
+  if (mode == "test") {
+    if (fs.existsSync(`${mode}.db`)) {
+      fs.unlinkSync(`${mode}.db`);
+    }
+    await createAndInsertDB(mode);
+    return new Database(`${mode}.db`);
+  } else {
+    if (!fs.existsSync(`${mode}.db`)) {
+      await createAndInsertDB(mode);
+    }
+    return new Database(`${mode}.db`);
   }
-  return new Database("main.db");
 };
 
-const createAndInsertDB = () => {
-  const db = new Database("main.db");
+const createAndInsertDB = (mode: "test" | "production") => {
+  return new Promise<void>((resolve, reject) => {
+    const db = new Database(`${mode}.db`);
 
-  db.serialize(() => {
-    db.run(`
+    db.serialize(() => {
+      db.run(`
         CREATE TABLE IF NOT EXISTS users (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           name TEXT,
@@ -68,7 +76,7 @@ const createAndInsertDB = () => {
         )
       `);
 
-    db.run(`
+      db.run(`
         CREATE TABLE IF NOT EXISTS skills (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           user_id INTEGER,
@@ -78,7 +86,7 @@ const createAndInsertDB = () => {
         )
       `);
 
-    db.run(`
+      db.run(`
         CREATE TABLE IF NOT EXISTS events (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
@@ -88,7 +96,7 @@ const createAndInsertDB = () => {
         )
     `);
 
-    db.run(`
+      db.run(`
         CREATE TABLE IF NOT EXISTS hardware (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT,
@@ -98,7 +106,7 @@ const createAndInsertDB = () => {
         )
     `);
 
-    db.run(`
+      db.run(`
         CREATE TABLE IF NOT EXISTS hardware_owners (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
@@ -110,73 +118,76 @@ const createAndInsertDB = () => {
         )
     `);
 
-    const people = data as User[];
-    const hardwareData = hardwareJson as Hardware[];
+      const people = data as User[];
+      const hardwareData = hardwareJson as Hardware[];
 
-    db.run("BEGIN TRANSACTION");
+      db.run("BEGIN TRANSACTION");
 
-    const insertUsersPromise = people.map(
-      (person) =>
-        new Promise<void>((resolve, reject) => {
-          db.run(
-            `
+      const insertUsersPromise = people.map(
+        (person) =>
+          new Promise<void>((resolve, reject) => {
+            db.run(
+              `
             INSERT INTO users (name, company, email, phone)
             VALUES (?, ?, ?, ?)
           `,
-            [person.name, person.company, person.email, person.phone],
-            function (err) {
-              if (err) {
-                reject(err);
-              } else {
-                const userId = this.lastID;
+              [person.name, person.company, person.email, person.phone],
+              function (err) {
+                if (err) {
+                  reject(err);
+                } else {
+                  const userId = this.lastID;
 
-                const insertSkillsStmt = db.prepare(`
+                  const insertSkillsStmt = db.prepare(`
                   INSERT INTO skills (user_id, skill, rating)
                   VALUES (?, ?, ?)
                 `);
-                for (const skill of person.skills) {
-                  insertSkillsStmt.run(userId, skill.skill, skill.rating);
+                  for (const skill of person.skills) {
+                    insertSkillsStmt.run(userId, skill.skill, skill.rating);
+                  }
+                  insertSkillsStmt.finalize();
+
+                  resolve();
                 }
-                insertSkillsStmt.finalize();
-
-                resolve();
               }
-            }
-          );
-        })
-    );
+            );
+          })
+      );
 
-    const insertHardwarePromise = hardwareData.map(
-      (hardware) =>
-        new Promise<void>((resolve, reject) => {
-          db.run(
-            `
+      const insertHardwarePromise = hardwareData.map(
+        (hardware) =>
+          new Promise<void>((resolve, reject) => {
+            db.run(
+              `
             INSERT INTO hardware (name, total_quantity, available_quantity)
             VALUES (?, ?, ?)
           `,
-            [hardware.name, hardware.total_quantity, hardware.total_quantity],
-            function (err) {
-              if (err) {
-                reject(err);
-              } else {
-                resolve();
+              [hardware.name, hardware.total_quantity, hardware.total_quantity],
+              function (err) {
+                if (err) {
+                  reject(err);
+                } else {
+                  resolve();
+                }
               }
-            }
-          );
-        })
-    );
+            );
+          })
+      );
 
-    Promise.all([...insertUsersPromise, ...insertHardwarePromise])
-      .then(() => {
-        db.run("COMMIT", () => {
-          db.close();
+      Promise.all([...insertUsersPromise, ...insertHardwarePromise])
+        .then(() => {
+          db.run("COMMIT", () => {
+            db.close();
+            resolve();
+          });
+        })
+        .catch((err) => {
+          console.error("Error inserting data:", err);
+          db.run("ROLLBACK", () => {
+            db.close();
+            reject(err);
+          });
         });
-      })
-      .catch((err) => {
-        console.error("Error inserting data:", err);
-        db.run("ROLLBACK", () => {
-          db.close();
-        });
-      });
+    });
   });
 };

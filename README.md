@@ -1,4 +1,4 @@
-### Setup
+## Setup
 
 Run the following to get the server running
 
@@ -11,6 +11,14 @@ npm start
 ```
 
 This will automatically create a DB locally. Apollo playground will also be running; you can interact with it at http://localhost:4000/
+
+## Tests
+
+I've provided a suite of jest tests 
+
+```
+npm test
+```
 
 ## Features
 
@@ -178,6 +186,8 @@ query {
 - **SQLite3**: A C library that provides a lightweight disk-based database. It allows accessing the database using a nonstandard variant of the SQL query language.
 - **npm**: A package manager for the JavaScript programming language. It's used for managing project dependencies.
 - **ts-node**: A TypeScript execution and REPL for Node.js, with source map support. It's used for running TypeScript code directly, without compiling it first.
+- **Jest** JavaScript Testing Framework
+- **Babel** JavaScript compiler that lets us run Jest with TypeScript
 
 ### Future Features
 - Find a way to inherit types in the schema to reduce redundancy 

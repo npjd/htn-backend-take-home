@@ -20,6 +20,8 @@ I've provided a suite of jest tests
 npm test
 ```
 
+These are also integraated into Github Workflows
+
 ## Features
 
 ### Types
@@ -188,6 +190,7 @@ query {
 - **ts-node**: A TypeScript execution and REPL for Node.js, with source map support. It's used for running TypeScript code directly, without compiling it first.
 - **Jest** JavaScript Testing Framework
 - **Babel** JavaScript compiler that lets us run Jest with TypeScript
+- **Github Actions** Useful for CI/CD to make sure production branches have valid builds
 
 ### Future Features
 - Find a way to inherit types in the schema to reduce redundancy 

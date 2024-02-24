@@ -11,6 +11,7 @@ import { GraphQLError } from "graphql";
 
 const db = getDB();
 
+
 export const resolvers = {
   Query: {
     users: async (): Promise<User[]> => {
@@ -155,16 +156,7 @@ export const resolvers = {
 
         return existingUser;
       } catch (error) {
-        if (error instanceof GraphQLError) {
-          // Re-throw GraphQL errors
-          throw error;
-        } else {
-          // Log other errors and return specific error response
-          console.error("Failed to update user:", error);
-          throw new GraphQLError(
-            "Failed to update user. Please try again later."
-          );
-        }
+        return handleErrors(error);
       }
     },
     scanUser: async (
@@ -233,16 +225,7 @@ export const resolvers = {
 
         return true;
       } catch (error) {
-        if (error instanceof GraphQLError) {
-          // Re-throw GraphQL errors
-          throw error;
-        } else {
-          // Log other errors and return specific error response
-          console.error("Failed to update user:", error);
-          throw new GraphQLError(
-            "Failed to update user. Please try again later."
-          );
-        }
+        return handleErrors(error);
       }
     },
     checkInHardware: async (
@@ -298,16 +281,7 @@ export const resolvers = {
 
         return true;
       } catch (error) {
-        if (error instanceof GraphQLError) {
-          // Re-throw GraphQL errors
-          throw error;
-        } else {
-          // Log other errors and return specific error response
-          console.error("Failed to update user:", error);
-          throw new GraphQLError(
-            "Failed to update user. Please try again later."
-          );
-        }
+        return handleErrors(error);
       }
     },
   },
@@ -647,4 +621,15 @@ const getHardwareOwnedByUser = (
       }
     );
   });
+};
+
+const handleErrors = (error: any) => {
+  if (error instanceof GraphQLError) {
+    // Re-throw GraphQL errors
+    throw error;
+  } else {
+    // Log other errors and return specific error response
+    console.error("Failed to update user:", error);
+    throw new GraphQLError("Failed to update user. Please try again later.");
+  }
 };
